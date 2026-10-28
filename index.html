@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Dynamic Toggle Navigation</title>
+<style>
+  :root { --ink:#12302f; --paper:#f3f7f6; --accent:#f2a541; --line:#d3dedc; --ease:cubic-bezier(.4,0,.2,1); }
+  * { box-sizing:border-box; margin:0; }
+  body { font-family:Georgia, "Times New Roman", serif; background:var(--paper); color:var(--ink); line-height:1.6; }
+
+  /* Header */
+  header { position:sticky; top:0; z-index:30; display:flex; align-items:center; justify-content:space-between;
+           padding:14px 24px; background:var(--paper); border-bottom:1px solid var(--line); }
+  .logo { font-weight:700; font-size:1.25rem; letter-spacing:.02em; color:var(--ink); text-decoration:none; }
+
+  /* Links (shared) */
+  .nav-links { display:flex; gap:6px; list-style:none; padding:0; }
+  .nav-links a { position:relative; display:block; padding:8px 14px; color:var(--ink); text-decoration:none;
+                 border-radius:6px; transition:background .25s var(--ease), color .25s var(--ease), transform .25s var(--ease); }
+  .nav-links a::after { content:""; position:absolute; left:14px; right:14px; bottom:4px; height:2px; background:var(--accent);
+                        transform:scaleX(0); transform-origin:left; transition:transform .3s var(--ease); }
+  .nav-links a:hover { background:#e2ecea; transform:translateY(-1px); }
+  .nav-links a:hover::after, .nav-links a.active::after { transform:scaleX(1); }
+  .nav-links a.active { font-weight:700; }
+  a:focus-visible, button:focus-visible { outline:3px solid var(--accent); outline-offset:2px; }
+
+  /* Hamburger button */
+  .toggle { display:none; width:44px; height:44px; border:0; background:none; cursor:pointer; position:relative; }
+  .toggle span { position:absolute; left:10px; right:10px; height:2px; background:var(--ink); border-radius:2px;
+                 transition:transform .35s var(--ease), opacity .2s var(--ease), top .35s var(--ease); }
+  .toggle span:nth-child(1) { top:14px; } .toggle span:nth-child(2) { top:21px; } .toggle span:nth-child(3) { top:28px; }
+  .toggle[aria-expanded="true"] span:nth-child(1) { top:21px; transform:rotate(45deg); }
+  .toggle[aria-expanded="true"] span:nth-child(2) { opacity:0; }
+  .toggle[aria-expanded="true"] span:nth-child(3) { top:21px; transform:rotate(-45deg); }
+
+  /* Overlay */
+  .overlay { position:fixed; inset:0; background:rgba(18,48,47,.45); opacity:0; visibility:hidden;
+             transition:opacity .35s var(--ease), visibility .35s; z-index:10; }
+  .overlay.show { opacity:1; visibility:visible; }
+
+  /* Mobile drawer */
+  @media (max-width:760px) {
+    .toggle { display:block; z-index:30; }
+    .nav-links { position:fixed; top:0; right:0; height:100%; width:min(80%,320px); flex-direction:column; gap:4px;
+                 padding:84px 20px 20px; background:var(--paper); box-shadow:-8px 0 24px rgba(0,0,0,.15);
+                 transform:translateX(100%); transition:transform .4s var(--ease); z-index:20; }
+    .nav-links.open { transform:translateX(0); }
+    .nav-links a { font-size:1.1rem; padding:12px 14px; }
+  }
+
+  /* Page content */
+  main section { max-width:680px; margin:0 auto; padding:80px 24px; min-height:70vh; border-bottom:1px solid var(--line); }
+  h1, h2 { line-height:1.15; margin-bottom:12px; }
+  h1 { font-size:2.4rem; }
+
+  @media (prefers-reduced-motion:reduce) { * { transition-duration:.01ms !important; } }
+</style>
+</head>
+<body>
+
+<header>
+  <a href="#home" class="logo">Northline</a>
+  <button class="toggle" id="toggle" aria-label="Toggle menu" aria-expanded="false" aria-controls="menu">
+    <span></span><span></span><span></span>
+  </button>
+  <ul class="nav-links" id="menu">
+    <li><a href="#home" class="active">Home</a></li>
+    <li><a href="#about">About</a></li>
+    <li><a href="#services">Services</a></li>
+    <li><a href="#contact">Contact</a></li>
+  </ul>
+</header>
+<div class="overlay" id="overlay"></div>
+
+<main>
+  <section id="home"><h1>Navigation that moves with you</h1><p>Resize the window below 760px to see the hamburger menu and the sliding drawer.</p></section>
+  <section id="about"><h2>About</h2><p>Click a link, or scroll, and the active link updates automatically.</p></section>
+  <section id="services"><h2>Services</h2><p>Hover over any link to see the underline and lift transition.</p></section>
+  <section id="contact"><h2>Contact</h2><p>Press Escape or tap the dark overlay to close the drawer.</p></section>
+</main>
+
+<script>
+  const toggle  = document.getElementById('toggle');
+  const menu    = document.getElementById('menu');
+  const overlay = document.getElementById('overlay');
+  const links   = document.querySelectorAll('.nav-links a');
+  const sections = document.querySelectorAll('main section');
+
+  // Open / close the drawer
+  function setMenu(open) {
+    menu.classList.toggle('open', open);
+    overlay.classList.toggle('show', open);
+    toggle.setAttribute('aria-expanded', String(open));
+    document.body.style.overflow = open ? 'hidden' : '';
+  }
+
+  toggle.addEventListener('click', () => setMenu(!menu.classList.contains('open')));
+  overlay.addEventListener('click', () => setMenu(false));
+  document.addEventListener('keydown', e => { if (e.key === 'Escape') setMenu(false); });
+  window.addEventListener('resize', () => { if (window.innerWidth > 760) setMenu(false); });
+
+  // Set the active link
+  function setActive(id) {
+    links.forEach(a => a.classList.toggle('active', a.getAttribute('href') === '#' + id));
+  }
+
+  // Click: smooth scroll, mark active, close drawer
+  links.forEach(a => a.addEventListener('click', e => {
+    e.preventDefault();
+    const id = a.getAttribute('href').slice(1);
+    document.getElementById(id).scrollIntoView({ behavior:'smooth' });
+    setActive(id);
+    setMenu(false);
+  }));
+
+  // Scroll: highlight the section in view
+  const observer = new IntersectionObserver(entries => {
+    entries.forEach(en => { if (en.isIntersecting) setActive(en.target.id); });
+  }, { rootMargin:'-40% 0px -50% 0px' });
+  sections.forEach(s => observer.observe(s));
+</script>
+</body>
+</html>
